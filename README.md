@@ -1,4 +1,8 @@
 `sudo apt install libfftw3-dev libfftw3-double3 libfftw3-single3`
+`sudo apt-get install python3-dev`
+`pip install -r requirements.txt`
+`pip install Cython`
+`pip install --no-build-isolation fitsne`
 
 ### Cel projektu
 Celem projektu jest identyfikacja nietypowych lotów na podstawie parametrów trajektorii, takich jak wysokość, prędkość, zmiany kursu i długość trasy.

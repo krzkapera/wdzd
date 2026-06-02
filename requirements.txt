@@ -4,7 +4,6 @@ scikit-learn
 umap-learn
 pacmap
 trimap
-Cython
---no-build-isolation
-fitsne
-
+setuptools
+seaborn
+matplotlib
