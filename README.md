@@ -1,3 +1,5 @@
+`sudo apt install libfftw3-dev libfftw3-double3 libfftw3-single3`
+
 ### Cel projektu
 Celem projektu jest identyfikacja nietypowych lotów na podstawie parametrów trajektorii, takich jak wysokość, prędkość, zmiany kursu i długość trasy.
 
