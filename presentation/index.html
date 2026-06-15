@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Wykrywanie nietypowych lotów — OpenSky</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+
+  <style>
+    :root {
+      --accent: #2563eb;
+      --accent2: #e45756;
+      --ink: #1f2933;
+    }
+    .reveal { font-family: "Inter", "Segoe UI", system-ui, sans-serif; color: var(--ink); }
+    .reveal h1, .reveal h2, .reveal h3 { color: var(--ink); font-weight: 700; letter-spacing: -.01em; text-transform: none; }
+    .reveal h1 { font-size: 2.1em; }
+    .reveal h2 { font-size: 1.5em; color: var(--accent); }
+    .reveal section img { border: none; box-shadow: none; }
+    .reveal .slides section { text-align: left; }
+    .reveal .slides section.center-slide { text-align: center; }
+
+    /* osadzone interaktywne wykresy */
+    .chart-frame {
+      width: 100%; height: 68vh; border: 1px solid #e5e7eb; border-radius: 10px;
+      background: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.06);
+    }
+    .chart-frame.tall { height: 74vh; }
+    .caption { font-size: .5em; color: #6b7280; margin-top: .4em; text-align: center; }
+
+    /* karty / liczby */
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: .3em; }
+    .grid.two { grid-template-columns: repeat(2, 1fr); }
+    .card { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 20px; }
+    .card .big { font-size: 1.9em; font-weight: 800; color: var(--accent); line-height: 1; }
+    .card .lbl { font-size: .52em; color: #4b5563; margin-top: 6px; }
+    .pill { display:inline-block; background: var(--accent); color:#fff; border-radius: 999px;
+            padding: 3px 12px; font-size: .42em; font-weight:600; }
+
+    .reveal table { font-size: .56em; }
+    .reveal table th { background: #f1f5f9; }
+    .reveal ul { font-size: .82em; }
+    .reveal .small { font-size: .62em; }
+    .lead { font-size: .8em; color:#475569; }
+    .reveal section .footnote { position: absolute; bottom: 8px; left: 0; right: 0;
+            font-size: .38em; color:#9ca3af; text-align:center; }
+    .tag { color: var(--accent2); font-weight: 700; }
+    .reveal pre code { border-radius: 8px; }
+    .hint { background:#eff6ff; border-left:4px solid var(--accent); padding:8px 14px;
+            border-radius:6px; font-size:.6em; color:#1e3a5f; margin-top:10px; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- 1. TYTUL -->
+    <section class="center-slide" data-background-gradient="linear-gradient(135deg,#eff6ff 0%,#ffffff 60%)">
+      <span class="pill">Wizualizacja dużych zbiorów danych</span>
+      <h1 style="margin-top:.4em">✈️ Wykrywanie nietypowych lotów</h1>
+      <h3 style="color:#475569;font-weight:500">Analiza trajektorii na podstawie danych OpenSky Network</h3>
+      <p class="lead" style="margin-top:1.2em">
+        Reprezentacja lotów jako wektorów cech &middot; redukcja wymiaru &middot;
+        wykrywanie anomalii &middot; klastrowanie typów lotów
+      </p>
+      <p class="small" style="margin-top:1.5em;color:#94a3b8">
+        Próbka: 2022-06-27, godz. 23:00 UTC &nbsp;•&nbsp; ↓ / → aby nawigować
+      </p>
+    </section>
+
+    <!-- 2. PROBLEM -->
+    <section>
+      <h2>Problem</h2>
+      <p class="lead">Każdego dnia w powietrzu są dziesiątki tysięcy samolotów. Większość to
+        rutynowe przeloty rejsowe — ale <span class="tag">część lotów odstaje</span>:
+        krążą, manewrują, mają nietypowy profil wysokości lub prędkości.</p>
+      <div class="grid">
+        <div class="card"><div class="big">?</div><div class="lbl">Które loty są <b>nietypowe</b> i&nbsp;dlaczego?</div></div>
+        <div class="card"><div class="big">18</div><div class="lbl">cech opisujących <b>jeden lot</b></div></div>
+        <div class="card"><div class="big">2D</div><div class="lbl">wizualizacja w przestrzeni dla człowieka</div></div>
+      </div>
+      <div class="hint"><b>Cel:</b> zidentyfikować nietypowe loty na podstawie parametrów
+        trajektorii — wysokości, prędkości, zmian kursu i długości trasy — oraz
+        <b>wyjaśnić, jak</b> konkretnie odstają.</div>
+    </section>
+
+    <!-- 3. DANE -->
+    <section>
+      <section>
+        <h2>Dane — OpenSky Network</h2>
+        <p class="lead"><i>State vectors</i>: stan każdego samolotu co sekundę
+          (pozycja, prędkość, kurs, wysokość). Jedna godzina ruchu lotniczego.</p>
+        <div class="grid">
+          <div class="card"><div class="big">2,48&nbsp;mln</div><div class="lbl">surowych rekordów (state vectors)</div></div>
+          <div class="card"><div class="big">1,14&nbsp;mln</div><div class="lbl">po usunięciu braków danych</div></div>
+          <div class="card"><div class="big" id="n-flights">5&nbsp;763</div><div class="lbl">unikalnych lotów (icao24 / callsign)</div></div>
+        </div>
+        <p class="small" style="margin-top:14px">Najważniejsze kolumny:
+          <code>lat/lon</code>, <code>velocity</code>, <code>heading</code>,
+          <code>vertrate</code>, <code>geoaltitude</code>, <code>squawk</code>,
+          <code>icao24</code>, <code>callsign</code>.</p>
+        <p class="small">↓ zobacz, jak wygląda godzina ruchu lotniczego</p>
+      </section>
+      <section data-background-color="#ffffff">
+        <h3>Przegląd geograficzny ruchu</h3>
+        <iframe class="chart-frame tall" data-src="figures/01_mapa_ruchu.html" loading="lazy"></iframe>
+        <div class="caption">Próbka 20 tys. pozycji • kolor = wysokość • <b>najedź / przybliżaj</b></div>
+      </section>
+    </section>
+
+    <!-- 4. CECHY -->
+    <section>
+      <h2>Lot → wektor cech</h2>
+      <p class="lead">Surowe dane to <i>sekwencje</i> pomiarów. Agregujemy wszystkie pomiary
+        jednego lotu w <b>jeden 18-wymiarowy wektor</b>.</p>
+      <table>
+        <tr><th>Blok</th><th>Cechy</th><th>Co opisuje</th></tr>
+        <tr><td><b>Wysokość</b></td><td>alt_mean, alt_min/max, alt_std, alt_range</td><td>profil pionowy lotu</td></tr>
+        <tr><td><b>Prędkość</b></td><td>vel_mean, vel_max, vel_std</td><td>rejsowa vs zmienna</td></tr>
+        <tr><td><b>Pionowa</b></td><td>vert_mean/min/max/std</td><td>wznoszenie / opadanie</td></tr>
+        <tr><td><b>Kurs</b></td><td>heading_mean, <span class="tag">heading_std</span></td><td>krążenie / manewry</td></tr>
+        <tr><td><b>Trasa</b></td><td>lat_range, lon_range</td><td>rozpiętość geograficzna</td></tr>
+        <tr><td><b>Pokrycie</b></td><td>measurements_count, time_span</td><td>długość obserwacji</td></tr>
+      </table>
+    </section>
+
+    <!-- 5. EDA -->
+    <section>
+      <section>
+        <h3>Rozkłady cech</h3>
+        <iframe class="chart-frame" data-src="figures/02_rozklady_cech.html" loading="lazy"></iframe>
+        <div class="caption">Długie ogony rozkładów = kandydaci na anomalie</div>
+      </section>
+      <section>
+        <h3>Korelacje cech</h3>
+        <iframe class="chart-frame" data-src="figures/03_korelacje.html" loading="lazy"></iframe>
+        <div class="caption">Skorelowane cechy → uzasadnienie redukcji wymiaru (18 → 2)</div>
+      </section>
+    </section>
+
+    <!-- 6. PODEJSCIE -->
+    <section>
+      <h2>Nasze podejście</h2>
+      <div class="grid">
+        <div class="card"><span class="pill">1</span>
+          <p class="small"><b>Redukcja wymiaru</b><br>PCA, UMAP, PaCMAP, TriMAP, t-SNE — rzut 18D → 2D</p></div>
+        <div class="card"><span class="pill">2</span>
+          <p class="small"><b>Wykrywanie anomalii</b><br>Isolation Forest, LOF, One-Class SVM + konsensus</p></div>
+        <div class="card"><span class="pill">3</span>
+          <p class="small"><b>Klastrowanie</b><br>K-Means + HDBSCAN → typy lotów</p></div>
+      </div>
+      <div class="hint">Wszystko na <b>standaryzowanych</b> cechach. Wizualizacje są
+        interaktywne (Plotly) — kolor i rozmiar punktów kodują dodatkowe parametry,
+        a hover pokazuje konkretny lot.</div>
+    </section>
+
+    <!-- 7. WYNIKI: redukcja wymiaru -->
+    <section>
+      <section class="center-slide">
+        <h2>Wyniki — redukcja wymiaru</h2>
+        <p class="lead">5 metod, te same loty. Kolor = średnia wysokość, rozmiar = liczba pomiarów.</p>
+        <p class="small">↓ przewiń przez metody</p>
+        <iframe class="chart-frame" data-src="figures/05_pca_scree.html" loading="lazy" style="height:46vh"></iframe>
+        <div class="caption">PCA — pierwsze składowe wyjaśniają większość wariancji</div>
+      </section>
+      <section><h3>PCA</h3>
+        <iframe class="chart-frame tall" data-src="figures/06_pca.html" loading="lazy"></iframe>
+        <div class="caption">Liniowa • dobrze oddaje globalny gradient wysokość–prędkość</div></section>
+      <section><h3>UMAP</h3>
+        <iframe class="chart-frame tall" data-src="figures/07_umap.html" loading="lazy"></iframe>
+        <div class="caption">Wyraźne skupiska = typy lotów; punkty na obrzeżach = anomalie</div></section>
+      <section><h3>PaCMAP</h3>
+        <iframe class="chart-frame tall" data-src="figures/08_pacmap.html" loading="lazy"></iframe>
+        <div class="caption">Balans struktury lokalnej i globalnej</div></section>
+      <section><h3>TriMAP</h3>
+        <iframe class="chart-frame tall" data-src="figures/09_trimap.html" loading="lazy"></iframe>
+        <div class="caption">Struktura globalna przez trójki punktów</div></section>
+      <section><h3>t-SNE</h3>
+        <iframe class="chart-frame tall" data-src="figures/10_tsne.html" loading="lazy"></iframe>
+        <div class="caption">Najlepsze rozdzielenie lokalnych skupisk (FIt-SNE / openTSNE)</div></section>
+    </section>
+
+    <!-- 8. WYNIKI: anomalie -->
+    <section>
+      <section>
+        <h2>Wyniki — anomalie</h2>
+        <p class="lead">Trzy niezależne detektory, próg 5%. <b>Konsensus</b> (≥2 metody)
+          wyostrza najpewniejsze przypadki.</p>
+        <iframe class="chart-frame" data-src="figures/11_konsensus.html" loading="lazy" style="height:48vh"></iframe>
+        <div class="caption">Zgodność detektorów (skala logarytmiczna)</div>
+      </section>
+      <section><h3>Anomalie na rzucie UMAP</h3>
+        <iframe class="chart-frame tall" data-src="figures/12_anomalie_umap.html" loading="lazy"></iframe>
+        <div class="caption">Kolor = liczba metod (0–3). Anomalie leżą w rzadkich rejonach przestrzeni</div></section>
+    </section>
+
+    <!-- 9. INTERPRETACJA -->
+    <section>
+      <section>
+        <h2>Jak <i>konkretnie</i> odstają?</h2>
+        <p class="lead">Dla każdej cechy: o ile odchyleń standardowych odstaje przeciętna anomalia.</p>
+        <iframe class="chart-frame" data-src="figures/13_zscore_cech.html" loading="lazy"></iframe>
+        <div class="caption">Anomalie napędzane głównie przez zmienność kursu, zakres wysokości i prędkość pionową</div>
+      </section>
+      <section><h3>Trajektorie nietypowych lotów</h3>
+        <iframe class="chart-frame tall" data-src="figures/14_trajektorie_anomalii.html" loading="lazy"></iframe>
+        <div class="caption">Faktyczne trasy: krążenie / manewry / nietypowy profil wysokości (kolor = wysokość)</div></section>
+    </section>
+
+    <!-- 10. KLASTRY -->
+    <section>
+      <section>
+        <h2>Element rozszerzony — typy lotów</h2>
+        <p class="lead">K-Means (k z wskaźnika sylwetki) + HDBSCAN. Każdy klaster dostaje
+          opisowy <b>typ lotu</b>.</p>
+        <iframe class="chart-frame" data-src="figures/15_silhouette.html" loading="lazy" style="height:46vh"></iframe>
+        <div class="caption">Dobór liczby klastrów</div>
+      </section>
+      <section><h3>Typy lotów na rzucie UMAP</h3>
+        <iframe class="chart-frame tall" data-src="figures/16_klastry_umap.html" loading="lazy"></iframe>
+        <div class="caption">Skupiska redukcji wymiaru pokrywają się z klastrami</div></section>
+      <section><h3>Profile typów lotów</h3>
+        <iframe class="chart-frame" data-src="figures/17_profile_klastrow.html" loading="lazy"></iframe>
+        <div class="caption">„Podpis" każdego typu — z-score cech (rejsowy, manewrowy, wznoszenie…)</div></section>
+    </section>
+
+    <!-- 11. WNIOSKI -->
+    <section>
+      <h2>Wnioski</h2>
+      <ul>
+        <li>18-wymiarowy wektor cech <b>skutecznie opisuje lot</b>; redukcja wymiaru ujawnia
+          czytelne typy lotów.</li>
+        <li>Trzy detektory zgodnie wskazują ~5% lotów; <b>konsensus</b> wyostrza najpewniejsze.</li>
+        <li>Anomalie to głównie loty <span class="tag">krążące / manewrowe</span> oraz
+          o nietypowym <span class="tag">profilu pionowym</span>.</li>
+        <li>Klastrowanie nadaje strukturze interpretację: przeloty rejsowe, wznoszenie/zniżanie,
+          loty wolne/niskie (GA, śmigłowce), fragmentaryczne.</li>
+      </ul>
+      <div class="hint"><b>Ograniczenia:</b> jedna godzina danych (loty obcięte na brzegach),
+        <code>heading_std</code> bez cykliczności 0/360°, cechy zagregowane (tracą kolejność).</div>
+    </section>
+
+    <!-- 12. ROZWOJ -->
+    <section>
+      <h2>Kierunki rozwoju</h2>
+      <ul>
+        <li>Cechy <b>sekwencyjne / kształtu trajektorii</b> (DTW, autoenkodery) zamiast agregatów.</li>
+        <li><b>Klasyfikacja nadzorowana</b> typów lotów po ręcznym oznaczeniu próbki.</li>
+        <li>Etykiety odniesienia z <code>squawk</code> 7500 / 7600 / 7700 (porwanie / awaria radia / ogólna awaria).</li>
+        <li>Większa skala (cała doba, wiele dni) i <b>dashboard na żywo</b> (Dash).</li>
+      </ul>
+    </section>
+
+    <!-- 13. INTERAKTYWNE DOSWIADCZENIE -->
+    <section>
+      <section class="center-slide">
+        <h2>🧪 Interaktywne doświadczenie</h2>
+        <p class="lead">Eksploruj loty samodzielnie — najedź, przybliżaj, filtruj legendę.</p>
+        <iframe class="chart-frame tall" data-src="figures/16_klastry_umap.html" loading="lazy"></iframe>
+        <div class="caption">Mapa lotów wg typu — kliknij legendę, aby izolować typ; hover = parametry lotu</div>
+      </section>
+      <section class="center-slide" data-background-gradient="linear-gradient(135deg,#eff6ff 0%,#ffffff 60%)">
+        <h2>Dziękujemy</h2>
+        <p class="lead">Pełna analiza i kod: <code>src/lol.ipynb</code></p>
+        <p class="small" style="color:#94a3b8">Dane: OpenSky Network &middot; opensky-network.org</p>
+      </section>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    width: 1280,
+    height: 800,
+    margin: 0.04,
+    plugins: [ RevealHighlight, RevealNotes ],
+  });
+  // Leniwe ladowanie iframe'ow tylko dla widocznych slajdow (wydajnosc).
+  Reveal.on('ready', loadVisible);
+  Reveal.on('slidechanged', loadVisible);
+  function loadVisible() {
+    document.querySelectorAll('.present iframe[data-src]').forEach(function (f) {
+      if (!f.src) f.src = f.getAttribute('data-src');
+    });
+  }
+</script>
+</body>
+</html>

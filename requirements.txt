@@ -7,3 +7,9 @@ trimap
 setuptools
 seaborn
 matplotlib
+plotly
+hdbscan
+openTSNE
+nbconvert
+nbformat
+ipykernel

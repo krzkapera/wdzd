@@ -1,1 +1,6 @@
 data/*.json
+data/*.tar
+data/*.gz
+.venv/
+__pycache__/
+.ipynb_checkpoints/
