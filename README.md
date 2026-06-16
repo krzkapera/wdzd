@@ -17,10 +17,10 @@
    gunzip data/states_2022-06-27-23.json.gz
    ```
 
-3. **Notebook** — otwórz `src/lol.ipynb` (kernel *Python (wdzd)*) lub uruchom z linii poleceń:
+3. **Notebook** — otwórz `src/main.ipynb` (kernel *Python (wdzd)*) lub uruchom z linii poleceń:
    ```bash
    .venv/bin/jupyter nbconvert --to notebook --execute --inplace \
-     --ExecutePreprocessor.kernel_name=wdzd-venv src/lol.ipynb
+     --ExecutePreprocessor.kernel_name=wdzd-venv src/main.ipynb
    ```
    Wykonanie eksportuje interaktywne wykresy do `presentation/figures/`.
    Notebook można odtworzyć z `src/_build_notebook.py`.

@@ -66,7 +66,10 @@
         Reprezentacja lotów jako wektorów cech &middot; redukcja wymiaru &middot;
         wykrywanie anomalii &middot; klastrowanie typów lotów
       </p>
-      <p class="small" style="margin-top:1.5em;color:#94a3b8">
+      <p class="lead" style="margin-top:1.1em;font-weight:600;color:#1f2933">
+        Krzysztof Kapera &middot; Piotr Zborowski
+      </p>
+      <p class="small" style="margin-top:1.2em;color:#94a3b8">
         Próbka: 2022-06-27, godz. 23:00 UTC &nbsp;•&nbsp; ↓ / → aby nawigować
       </p>
     </section>
@@ -205,16 +208,19 @@
         <iframe class="chart-frame" data-src="figures/13_zscore_cech.html" loading="lazy"></iframe>
         <div class="caption">Anomalie napędzane głównie przez zmienność kursu, zakres wysokości i prędkość pionową</div>
       </section>
-      <section><h3>Trajektorie nietypowych lotów</h3>
+      <section><h3>Trajektorie nietypowych lotów (rzut poziomy)</h3>
         <iframe class="chart-frame tall" data-src="figures/14_trajektorie_anomalii.html" loading="lazy"></iframe>
-        <div class="caption">Faktyczne trasy: krążenie / manewry / nietypowy profil wysokości (kolor = wysokość)</div></section>
+        <div class="caption">Ruch poziomy: krążenie / manewry (kolor = wysokość). Dynamika pionowa → następny slajd</div></section>
+      <section><h3>Profile pionowe nietypowych lotów</h3>
+        <iframe class="chart-frame tall" data-src="figures/14b_profile_pionowe.html" loading="lazy"></iframe>
+        <div class="caption">Wysokość (niebieski) i <b>prędkość pionowa</b> (czerwony) w czasie — tu widać <i>ekstremalną prędkość pionową</i> i pełny profil wysokości</div></section>
     </section>
 
     <!-- 10. KLASTRY -->
     <section>
       <section>
         <h2>Element rozszerzony — typy lotów</h2>
-        <p class="lead">K-Means (k z wskaźnika sylwetki) + HDBSCAN. Każdy klaster dostaje
+        <p class="lead">K-Means (k z silhouette score) + HDBSCAN. Każdy klaster dostaje
           opisowy <b>typ lotu</b>.</p>
         <iframe class="chart-frame" data-src="figures/15_silhouette.html" loading="lazy" style="height:46vh"></iframe>
         <div class="caption">Dobór liczby klastrów</div>
@@ -243,30 +249,12 @@
         <code>heading_std</code> bez cykliczności 0/360°, cechy zagregowane (tracą kolejność).</div>
     </section>
 
-    <!-- 12. ROZWOJ -->
-    <section>
-      <h2>Kierunki rozwoju</h2>
-      <ul>
-        <li>Cechy <b>sekwencyjne / kształtu trajektorii</b> (DTW, autoenkodery) zamiast agregatów.</li>
-        <li><b>Klasyfikacja nadzorowana</b> typów lotów po ręcznym oznaczeniu próbki.</li>
-        <li>Etykiety odniesienia z <code>squawk</code> 7500 / 7600 / 7700 (porwanie / awaria radia / ogólna awaria).</li>
-        <li>Większa skala (cała doba, wiele dni) i <b>dashboard na żywo</b> (Dash).</li>
-      </ul>
-    </section>
-
-    <!-- 13. INTERAKTYWNE DOSWIADCZENIE -->
-    <section>
-      <section class="center-slide">
-        <h2>🧪 Interaktywne doświadczenie</h2>
-        <p class="lead">Eksploruj loty samodzielnie — najedź, przybliżaj, filtruj legendę.</p>
-        <iframe class="chart-frame tall" data-src="figures/16_klastry_umap.html" loading="lazy"></iframe>
-        <div class="caption">Mapa lotów wg typu — kliknij legendę, aby izolować typ; hover = parametry lotu</div>
-      </section>
-      <section class="center-slide" data-background-gradient="linear-gradient(135deg,#eff6ff 0%,#ffffff 60%)">
-        <h2>Dziękujemy</h2>
-        <p class="lead">Pełna analiza i kod: <code>src/lol.ipynb</code></p>
-        <p class="small" style="color:#94a3b8">Dane: OpenSky Network &middot; opensky-network.org</p>
-      </section>
+    <!-- 12. DZIEKUJEMY -->
+    <section class="center-slide" data-background-gradient="linear-gradient(135deg,#eff6ff 0%,#ffffff 60%)">
+      <h2>Dziękujemy</h2>
+      <p class="lead" style="font-weight:600">Krzysztof Kapera &middot; Piotr Zborowski</p>
+      <p class="lead">Pełna analiza i kod: <code>src/main.ipynb</code></p>
+      <p class="small" style="color:#94a3b8">Dane: OpenSky Network &middot; opensky-network.org</p>
     </section>
 
   </div>
