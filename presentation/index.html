@@ -9,6 +9,16 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
 
+  <!-- Arkusz drukowania PDF (aktywny tylko z ?print-pdf w URL) -->
+  <script>
+    if (window.location.search.match(/print-pdf/gi)) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet'; link.type = 'text/css';
+      link.href = 'https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/css/print/pdf.css';
+      document.head.appendChild(link);
+    }
+  </script>
+
   <style>
     :root {
       --accent: #2563eb;
@@ -71,6 +81,9 @@
       </p>
       <p class="small" style="margin-top:1.2em;color:#94a3b8">
         Próbka: 2022-06-27, godz. 23:00 UTC &nbsp;•&nbsp; ↓ / → aby nawigować
+      </p>
+      <p class="small" style="margin-top:.6em">
+        <a href="https://github.com/krzkapera/wdzd" style="color:var(--accent);font-weight:600">github.com/krzkapera/wdzd</a>
       </p>
     </section>
 
@@ -195,9 +208,21 @@
         <iframe class="chart-frame" data-src="figures/11_konsensus.html" loading="lazy" style="height:48vh"></iframe>
         <div class="caption">Zgodność detektorów (skala logarytmiczna)</div>
       </section>
+      <section><h3>Anomalie na rzucie PCA</h3>
+        <iframe class="chart-frame tall" data-src="figures/12_anomalie_pca.html" loading="lazy"></iframe>
+        <div class="caption">Kolor = liczba metod (0–3): fioletowy = 1 metoda, czerwony = konsensus 3 metod</div></section>
       <section><h3>Anomalie na rzucie UMAP</h3>
         <iframe class="chart-frame tall" data-src="figures/12_anomalie_umap.html" loading="lazy"></iframe>
-        <div class="caption">Kolor = liczba metod (0–3). Anomalie leżą w rzadkich rejonach przestrzeni</div></section>
+        <div class="caption">Kolor = liczba metod (0–3): fioletowy = 1 metoda, czerwony = konsensus 3 metod</div></section>
+      <section><h3>Anomalie na rzucie PaCMAP</h3>
+        <iframe class="chart-frame tall" data-src="figures/12_anomalie_pacmap.html" loading="lazy"></iframe>
+        <div class="caption">Kolor = liczba metod (0–3): fioletowy = 1 metoda, czerwony = konsensus 3 metod</div></section>
+      <section><h3>Anomalie na rzucie TriMAP</h3>
+        <iframe class="chart-frame tall" data-src="figures/12_anomalie_trimap.html" loading="lazy"></iframe>
+        <div class="caption">Kolor = liczba metod (0–3): fioletowy = 1 metoda, czerwony = konsensus 3 metod</div></section>
+      <section><h3>Anomalie na rzucie t-SNE</h3>
+        <iframe class="chart-frame tall" data-src="figures/12_anomalie_tsne.html" loading="lazy"></iframe>
+        <div class="caption">Kolor = liczba metod (0–3): fioletowy = 1 metoda, czerwony = konsensus 3 metod</div></section>
     </section>
 
     <!-- 9. INTERPRETACJA -->
@@ -254,6 +279,9 @@
       <h2>Dziękujemy</h2>
       <p class="lead" style="font-weight:600">Krzysztof Kapera &middot; Piotr Zborowski</p>
       <p class="lead">Pełna analiza i kod: <code>src/main.ipynb</code></p>
+      <p class="lead" style="margin-top:.4em">
+        <a href="https://github.com/krzkapera/wdzd" style="color:var(--accent);font-weight:600">github.com/krzkapera/wdzd</a>
+      </p>
       <p class="small" style="color:#94a3b8">Dane: OpenSky Network &middot; opensky-network.org</p>
     </section>
 
@@ -264,6 +292,7 @@
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
 <script>
+  var isPrintPdf = !!window.location.search.match(/print-pdf/gi);
   Reveal.initialize({
     hash: true,
     slideNumber: 'c/t',
@@ -271,13 +300,18 @@
     width: 1280,
     height: 800,
     margin: 0.04,
+    // W trybie PDF wszystkie slajdy widoczne, brak leniwego ladowania.
+    pdfMaxPagesPerSlide: 1,
+    pdfSeparateFragments: false,
     plugins: [ RevealHighlight, RevealNotes ],
   });
   // Leniwe ladowanie iframe'ow tylko dla widocznych slajdow (wydajnosc).
+  // W trybie ?print-pdf ladujemy wszystkie iframe'y od razu, aby trafily do PDF.
   Reveal.on('ready', loadVisible);
   Reveal.on('slidechanged', loadVisible);
   function loadVisible() {
-    document.querySelectorAll('.present iframe[data-src]').forEach(function (f) {
+    var sel = isPrintPdf ? 'iframe[data-src]' : '.present iframe[data-src]';
+    document.querySelectorAll(sel).forEach(function (f) {
       if (!f.src) f.src = f.getAttribute('data-src');
     });
   }
